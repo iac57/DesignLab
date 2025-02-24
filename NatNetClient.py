@@ -526,7 +526,7 @@ class NatNetClient:
             # Model name
             model_name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
             offset += len( model_name ) + 1
-            trace_mf( "Model Name      : ", model_name.decode( 'utf-8' ) )
+            trace_mf("Model Name      : ", model_name.decode('utf-8', errors='replace'))
             marker_data.set_model_name(model_name)
             # Marker count (4 bytes)
             marker_count = int.from_bytes( data[offset:offset+4], byteorder='little',  signed=True )
@@ -1643,13 +1643,13 @@ class NatNetClient:
             mocap_data.rigid_body_data = MoCapData.RigidBodyData()
 
             #dc, rigid_body_data = self.__unpack_rigid_body_data( data[offset:], packet_size, major, minor )
-            rigid_body_data_str=mocap_data.rigid_body_data.get_as_string()
+            #rigid_body_data_str=mocap_data.rigid_body_data.get_as_string()
             print(rigid_body_data_str)
 
             #mocap_data.rigid_body_data.save_csv()
-
-           # if print_level >= 1:
-            #    print("%s\n"%mocap_data_str)
+            mocap_data_str=mocap_data.get_as_string()
+            if print_level >= 1:
+                print("%s\n"%mocap_data_str)
 
         elif message_id == self.NAT_MODELDEF :
             trace( "Message ID  : %3.1d NAT_MODELDEF"% message_id )

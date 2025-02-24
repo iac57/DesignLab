@@ -32,6 +32,8 @@ K_SKIP = [0,0,1]
 K_FAIL = [0,1,0]
 K_PASS = [1,0,0]
 
+FRAME_COUNTER = 0
+
 # get_tab_str
 # generate a string that takes the nesting level into account
 def get_tab_str(tab_str, level):
@@ -309,33 +311,53 @@ class RigidBodyData:
             
 
     def get_as_string(self, tab_str="  ", level=0):
+        global FRAME_COUNTER
+        FRAME_COUNTER += 1
+        print(FRAME_COUNTER)
+        #print(f"DEBUG: get_as_string called. FRAME_COUNTER = {FRAME_COUNTER}")
+        # Only output every 200th frame.
+        ##if FRAME_COUNTER % 20 != 0:
+        ##    return ""  # Skip printing and CSV writing on this frame.
+        
         out_tab_str = get_tab_str(tab_str, level)
-        out_str=""
-        rigid_body_count=len(self.rigid_body_list)
-        out_str += "%sRigid Body Count: %3.1d\n"%(out_tab_str, rigid_body_count)
-        rb_num=0
+        out_str = ""
+        rigid_body_count = len(self.rigid_body_list)
+        out_str += "%sRigid Body Count: %3.1d\n" % (out_tab_str, rigid_body_count)
+        rb_num = 0
+        positions = []
+        orientations = []
         for rigid_body in self.rigid_body_list:
-            rigid_body.marker_num=rb_num
+            print("loop")
+            rigid_body.marker_num = rb_num
             out_str += rigid_body.get_as_string(tab_str, level+1)
-            rb_num+=1
-        filename="rigid_body_data.csv"
-        file_exists = os.path.isfile(filename) 
-        with open(filename, mode="a", newline="") as file: 
-            writer = csv.writer(file) # Write header if the file is new 
-            if not file_exists: 
-                writer.writerow(["Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z", "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"]) 
-            
-            #rigid_body_count = rigid_body_data.get_rigid_body_count()
-            #print(f"Frame {frame_number}:{rigid_body_count} rigid bodies found")
-            print("hello")
-            for rigid_body in self.rigid_body_list: # Extract position and orientation 
-                position = rigid_body.pos # (x, y, z) 
-                orientation = rigid_body.rot # (w, x, y, z) 
-
-                # Write data for each rigid body 
-                writer.writerow([rigid_body.id_num, *position, *orientation])
-                #writer.writerow([frame_number, rigid_body_data_str])
+            positions.append(rigid_body.pos)
+            orientations.append(rigid_body.rot)
+            if FRAME_COUNTER == 200:
+                print('200!!!!')
+            rb_num += 1
+        if FRAME_COUNTER == 200:
+            FRAME_COUNTER = 0
+            print('hi')
+            print(positions)
+            filename = "rigid_body_data.csv"
+            file_exists = os.path.isfile(filename)
+            with open(filename, mode="a", newline="") as file:
+                writer = csv.writer(file)
+                # Write header if the file is new.
+                if not file_exists:
+                    writer.writerow(["Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
+                                "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"])
+                # Write data for each rigid body.
+                #for position in self.rigid_body_list:
+                #    position = rigid_body.pos
+                #    orientation = rigid_body.rot
+                #    writer.writerow(position)
+                for rigid_body in self.rigid_body_list:
+                    position=rigid_body.pos
+                    orientation = rigid_body.rot
+                    writer.writerow([rigid_body.id_num,*position,*orientation])
         return out_str
+
 
 
 class Skeleton:

@@ -17,13 +17,14 @@
 #
 # Uses the Python NatNetClient.py library to establish a connection (by creating a NatNetClient),
 # and receive data via a NatNet connection and decode it using the NatNetClient library.
-
+import csv
 import sys
 import time
 from NatNetClient import NatNetClient
 import DataDescriptions
 import MoCapData
-
+from PlayMachine import PlayMachine, machines
+from shapely.geometry import Point
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -40,10 +41,59 @@ def receive_new_frame(data_dict):
         print(out_string)
 
 # This is a callback function that gets connected to the NatNet client. It is called once per rigid body per frame
-def receive_rigid_body_frame( new_id, position, rotation ):
-    pass
+# This is a callback function that gets triggered once per rigid body per frame
+
+csv_filename = "machine_play_log.csv"
+# State variables to track last machine played and last play time
+last_machine_id = None
+last_play_time = 0  # Stores last play timestamp in seconds
+
+def receive_rigid_body_frame(new_id, position, rotation):
+    global last_machine_id, last_play_time  # Allow modifying global state variables
+
+    if new_id == 2:  # Assuming rigid body ID 2 is the tracked object
+        body_cm = Point(position[0], position[2])  # Convert position to a Point
+        machine_id = PlayMachine(machines, body_cm)
+
+        print(f"Detected Machine ID: {machine_id}")
+
+        if machine_id > 0:
+            current_time = time.time()  # Get current timestamp in seconds
+            
+            if last_machine_id is None:  # Only log if previously outside all machines
+                # Check if the last play was more than 1 second ago
+                if current_time - last_play_time >= 5:
+                    print("MACHINE PLAYED")
+
+                    # Get human-readable timestamp
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+                    # Append to CSV file
+                    with open(csv_filename, mode="a", newline="") as file:
+                        writer = csv.writer(file)
+
+                        # If file is empty, write headers
+                        if file.tell() == 0:
+                            writer.writerow(["Timestamp", "Machine ID"])
+
+                        # Log machine play
+                        writer.writerow([timestamp, machine_id])
+
+                    # Update state variables
+                    last_machine_id = machine_id
+                    last_play_time = current_time  # Update last play timestamp
+                else:
+                    print("Duplicate play ignored (less than 1 second apart).")
+        else:
+            print("No Machine Played")
+
+            # Reset last_machine_id when the body exits all machines
+            if last_machine_id is not None:
+                print("Body exited all machines.")
+                last_machine_id = None
     #print( "Received frame for rigid body", new_id )
     #print( "Received frame for rigid body", new_id," ",position," ",rotation )
+    
 
 def add_lists(totals, totals_tmp):
     totals[0]+=totals_tmp[0]
