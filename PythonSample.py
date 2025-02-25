@@ -25,6 +25,7 @@ import DataDescriptions
 import MoCapData
 from PlayMachine import PlayMachine, machines
 from shapely.geometry import Point
+from FoyerDetector import FoyerDetector
 import os
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
@@ -49,15 +50,23 @@ csv_filename = "machine_play_log.csv"
 last_machine_id = None
 last_play_time = 0  # Stores last play timestamp in seconds
 FRAME_COUNTER =0
+in_foyer = True #Flag to check if the body is in the foyer
+trial_number = 1 #Initialize trial number
 
+#Another callback method. This function is called once per rigid body per frame
 def receive_rigid_body_frame(new_id, position, rotation):
     #Is this function called for each rigid body or on all rigid bodies active?
     # To-Do: Modify function to label rows of data from previous trial with slot machine choice using PlayMachine result
     # Add code to detect when someone has left the foyer
     # Estimate foyer boundary coordinates using Motive gridworld
-    global last_machine_id, last_play_time, FRAME_COUNTER  # Allow modifying global state variables
+    global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, in_foyer  # Allow modifying global state variables
     FRAME_COUNTER += 1
-    if FRAME_COUNTER == 200:
+
+    # This code should work even when multiple rigid bodies are being tracked.
+    # _unpack_rigid_body() is called by unpack_rigid_body_data() for each rigid body in the frame. 
+    # _unpack_rigid_body_data() is called by _unpack_mocap_data once per frame.
+    # _unpack_mocap_data() is called by process_message() which is called by _data_thread_function() which is called by run() in NatNetClient.py
+    if FRAME_COUNTER == 200 & in_foyer:
         FRAME_COUNTER = 0
         print('hi')
         filename = "rigid_body_data.csv"
@@ -66,51 +75,65 @@ def receive_rigid_body_frame(new_id, position, rotation):
             writer = csv.writer(file)
             # Write header if the file is new.
             if not file_exists:
-                writer.writerow(["Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
-                            "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"])
-            writer.writerow([new_id,*position,*rotation])
+                #Initialize header for the CSV file
+                writer.writerow(["Trial Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
+                            "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"]) #I got rid of Frame Number
+            # Write data to the CSV file
+            writer.writerow([trial_number, new_id,*position,*rotation]) #FIXME: I think we should add frame number here
 
     if new_id == 1:  # Assuming rigid body ID 2 is the tracked object
-        body_cm = Point(position[0], position[2])  # Convert position to a Point
-        machine_id = PlayMachine(machines, body_cm)
+        """Check if the body is inside a machine and log the machine ID if it is"""
+        body_cm = Point(position[0], position[2])  # Convert position to a Point FIXME this should be xy not xz
+        loc = FoyerDetector()
+        if loc.is_in_foyer(body_cm):
+            print("Body is in the foyer")
+        elif loc.has_left_foyer(body_cm):
+            in_foyer = False
+            print("Body has left the foyer")
+            # Check if the body is inside a machine
+            machine_id = PlayMachine(machines, body_cm)
+            print(f"Detected Machine ID: {machine_id}")
+            if machine_id > 0: #check is machine played
+                current_time = time.time()  # Get current timestamp in seconds
+                if last_machine_id is None:  # Only log if previously outside all machines
+                    # Check if the last play was more than 5 seconds ago
+                    if current_time - last_play_time >= 5:
+                        print("MACHINE PLAYED")
 
-        print(f"Detected Machine ID: {machine_id}")
+                        # Get human-readable timestamp
+                        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
-        if machine_id > 0:
-            current_time = time.time()  # Get current timestamp in seconds
-            
-            if last_machine_id is None:  # Only log if previously outside all machines
-                # Check if the last play was more than 1 second ago
-                if current_time - last_play_time >= 5:
-                    print("MACHINE PLAYED")
+                        # Append to CSV file
+                        with open(csv_filename, mode="a", newline="") as file:
+                            writer = csv.writer(file)
 
-                    # Get human-readable timestamp
-                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                            # If file is empty, write headers
+                            #FIXME: Append trial number to the header
+                            if file.tell() == 0:
+                                writer.writerow(["Trial Number", "Timestamp", "Machine ID"])
 
-                    # Append to CSV file
-                    with open(csv_filename, mode="a", newline="") as file:
-                        writer = csv.writer(file)
+                            # Log machine play
+                            #FIXME: Add trial number to machine play log
+                            writer.writerow([trial_number, timestamp, machine_id])
 
-                        # If file is empty, write headers
-                        if file.tell() == 0:
-                            writer.writerow(["Timestamp", "Machine ID"])
+                        # Update state variables
+                        last_machine_id = machine_id
+                        last_play_time = current_time  # Update last play timestamp
+                    else:
+                        print("Duplicate play ignored (less than 5 seconds apart).")
+            else:
+                print("No Machine Played")
 
-                        # Log machine play
-                        writer.writerow([timestamp, machine_id])
+                # Reset last_machine_id when the body exits all machines
+                if last_machine_id is not None:
+                    print("Body exited all machines.")
+                    last_machine_id = None
 
-                    # Update state variables
-                    last_machine_id = machine_id
-                    last_play_time = current_time  # Update last play timestamp
-                else:
-                    print("Duplicate play ignored (less than 1 second apart).")
-        else:
-            print("No Machine Played")
-
-            # Reset last_machine_id when the body exits all machines
-            if last_machine_id is not None:
-                print("Body exited all machines.")
-                last_machine_id = None
-    #print( "Received frame for rigid body", new_id )
+        elif loc.has_reentered_foyer(body_cm):
+            #Start of a new trial
+            print("Body has reentered the foyer")
+            trial_number+=1 #Increment trial number
+            #print( "Received frame for rigid body", new_id )
     #print( "Received frame for rigid body", new_id," ",position," ",rotation )
     
 
@@ -243,6 +266,7 @@ if __name__ == "__main__":
 
     # Configure the streaming client to call our rigid body handler on the emulator to send data out.
     streaming_client.new_frame_listener = receive_new_frame
+    #Configure the streaming client to call receive_rigid_body_frame method on each rigid body in a frame. See _unpack_rigid_body() method in NatNetClient.py
     streaming_client.rigid_body_listener = receive_rigid_body_frame
 
     # Start up the streaming client now that the callbacks are set up.
