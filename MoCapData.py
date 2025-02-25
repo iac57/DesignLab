@@ -32,7 +32,7 @@ K_SKIP = [0,0,1]
 K_FAIL = [0,1,0]
 K_PASS = [1,0,0]
 
-FRAME_COUNTER = 0
+#FRAME_COUNTER = 0
 
 # get_tab_str
 # generate a string that takes the nesting level into account
@@ -311,9 +311,9 @@ class RigidBodyData:
             
 
     def get_as_string(self, tab_str="  ", level=0):
-        global FRAME_COUNTER
-        FRAME_COUNTER += 1
-        print(FRAME_COUNTER)
+        #global FRAME_COUNTER
+        #FRAME_COUNTER += 1
+        #print(FRAME_COUNTER)
         #print(f"DEBUG: get_as_string called. FRAME_COUNTER = {FRAME_COUNTER}")
         # Only output every 200th frame.
         ##if FRAME_COUNTER % 20 != 0:
@@ -326,6 +326,7 @@ class RigidBodyData:
         rb_num = 0
         positions = []
         orientations = []
+        '''
         for rigid_body in self.rigid_body_list:
             print("loop")
             rigid_body.marker_num = rb_num
@@ -336,7 +337,7 @@ class RigidBodyData:
                 print('200!!!!')
             rb_num += 1
         if FRAME_COUNTER == 200:
-            FRAME_COUNTER = 0
+            #FRAME_COUNTER = 0
             print('hi')
             print(positions)
             filename = "rigid_body_data.csv"
@@ -356,7 +357,9 @@ class RigidBodyData:
                     position=rigid_body.pos
                     orientation = rigid_body.rot
                     writer.writerow([rigid_body.id_num,*position,*orientation])
+                    '''
         return out_str
+        
 
 
 

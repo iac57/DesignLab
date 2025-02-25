@@ -25,6 +25,7 @@ import DataDescriptions
 import MoCapData
 from PlayMachine import PlayMachine, machines
 from shapely.geometry import Point
+import os
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -47,11 +48,29 @@ csv_filename = "machine_play_log.csv"
 # State variables to track last machine played and last play time
 last_machine_id = None
 last_play_time = 0  # Stores last play timestamp in seconds
+FRAME_COUNTER =0
 
 def receive_rigid_body_frame(new_id, position, rotation):
-    global last_machine_id, last_play_time  # Allow modifying global state variables
+    #Is this function called for each rigid body or on all rigid bodies active?
+    # To-Do: Modify function to label rows of data from previous trial with slot machine choice using PlayMachine result
+    # Add code to detect when someone has left the foyer
+    # Estimate foyer boundary coordinates using Motive gridworld
+    global last_machine_id, last_play_time, FRAME_COUNTER  # Allow modifying global state variables
+    FRAME_COUNTER += 1
+    if FRAME_COUNTER == 200:
+        FRAME_COUNTER = 0
+        print('hi')
+        filename = "rigid_body_data.csv"
+        file_exists = os.path.isfile(filename)
+        with open(filename, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            # Write header if the file is new.
+            if not file_exists:
+                writer.writerow(["Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
+                            "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"])
+            writer.writerow([new_id,*position,*rotation])
 
-    if new_id == 2:  # Assuming rigid body ID 2 is the tracked object
+    if new_id == 1:  # Assuming rigid body ID 2 is the tracked object
         body_cm = Point(position[0], position[2])  # Convert position to a Point
         machine_id = PlayMachine(machines, body_cm)
 
