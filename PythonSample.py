@@ -69,7 +69,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     # _unpack_mocap_data() is called by process_message() which is called by _data_thread_function() which is called by run() in NatNetClient.py
     if FRAME_COUNTER == 200 & in_foyer:
         FRAME_COUNTER = 0
-        print('hi')
+        print('hello world')
         filename = "rigid_body_data.csv"
         file_exists = os.path.isfile(filename)
         with open(filename, mode="a", newline="") as file:
@@ -82,12 +82,13 @@ def receive_rigid_body_frame(new_id, position, rotation):
             # Write data to the CSV file
             writer.writerow([trial_number, new_id,*position,*rotation]) #FIXME: I think we should add frame number here
 
-    if new_id == 1:  # Assuming rigid body ID 2 is the tracked object
+    if new_id == 2:  # Assuming rigid body ID 2 is the tracked object
         """Check if the body is inside a machine and log the machine ID if it is"""
         body_cm = Point(position[0], position[2])  # Convert position to a Point FIXME this should be xy not xz
         #Initialize foyer detection for subject:
         loc = FoyerDetector()
         if loc.is_in_foyer(body_cm):
+            in_foyer = True
             print("Body is in the foyer")
         elif loc.has_left_foyer(body_cm):
             in_foyer = False
