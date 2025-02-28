@@ -60,6 +60,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     # Add code to detect when someone has left the foyer
     # Estimate foyer boundary coordinates using Motive gridworld
     global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, in_foyer  # Allow modifying global state variables
+    #"global" keyword is used to modify a global variable inside a function rather than create a local copy of it
     FRAME_COUNTER += 1
 
     # This code should work even when multiple rigid bodies are being tracked.
@@ -84,6 +85,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     if new_id == 1:  # Assuming rigid body ID 2 is the tracked object
         """Check if the body is inside a machine and log the machine ID if it is"""
         body_cm = Point(position[0], position[2])  # Convert position to a Point FIXME this should be xy not xz
+        #Initialize foyer detection for subject:
         loc = FoyerDetector()
         if loc.is_in_foyer(body_cm):
             print("Body is in the foyer")
