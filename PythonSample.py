@@ -27,6 +27,7 @@ from PlayMachine import PlayMachine, machines
 from shapely.geometry import Point
 from FoyerDetector import FoyerDetector
 import os
+from Bandits import Casino, Bandit
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -49,22 +50,40 @@ csv_playlog = "machine_play_log.csv"
 # State variables to track last machine played and last play time
 last_machine_id = 0
 last_play_time = 0  # Stores last play timestamp in seconds
-FRAME_COUNTER = 0
-TOTAL_FRAMES = 0
+FRAME_COUNTER = 0 #all case indicates constant. this should be a variable?
+TOTAL_FRAMES = 0 #all case indicates constant. this should be a variable?
+WAIT_TIME = 5 #seconds to wait before checking if a machine is played again. This is to prevent multiple plays in a short time
 was_outof_foyer = False #Flag to check if the body is in the foyer
-trial_number = 1 #Initialize trial number
+trial_number = 1
 rigid_body_id = 3
+loc = FoyerDetector()
+"""-------------Casino Parameters----------------"""
+M = .2
+B = 1
+bandits: list[Bandit] = []
+polygon_points = [
+    [(-2.51, 0.4), (-2.51, 1), (-3.1, 1), (-3.1, 0.4)], #machine 1
+    [(-2.51, 1), (-2.51, 1.61), (-3.1, 1.61), (-3.1, 1)], #machine 2
+    [(-2.51, 1.61), (-2.51, 2.2), (-3.1, 2.2), (-3.1, 1.61)], #machine 3
+    [(-2.51, 2.2), (-2.51, 2.8), (-3.1, 2.8), (-3.1, 2.2)] #machine 4
+]
+for points in polygon_points:
+    bandits.append(Bandit(B/4, points)) #initialize bandits with equal payouts
+
+casino = Casino(bandits, B, M)
+total_payout = 0 #total earnings from user
+"""-----------------------------------------------"""
 #Another callback method. This function is called once per rigid body per frame
 def receive_rigid_body_frame(new_id, position, rotation):
     #Is this function called for each rigid body or on all rigid bodies active?
     # To-Do: Modify function to label rows of data from previous trial with slot machine choice using PlayMachine result
     # Add code to detect when someone has left the foyer
     # Estimate foyer boundary coordinates using Motive gridworld
-    global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, rigid_body_id, TOTAL_FRAMES # Allow modifying global state variables
+    global total_payout, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, rigid_body_id, TOTAL_FRAMES # Allow modifying global state variables
     #"global" keyword is used to modify a global variable inside a function rather than create a local copy of it
     FRAME_COUNTER += 1
     TOTAL_FRAMES += 1 #This is for printing frame number in csv. FIXME: Maybe there's a pre-existing variable for this?
-    loc = FoyerDetector()
+  
     # This code should work even when multiple rigid bodies are being tracked.
     # _unpack_rigid_body() is called by unpack_rigid_body_data() for each rigid body in the frame. 
     # _unpack_rigid_body_data() is called by _unpack_mocap_data once per frame.
@@ -100,6 +119,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
         was_outof_foyer=True
         FRAME_COUNTER=0
         if not loc.is_in_foyer(body_cm):
+            casino.set_payouts_random() #Use a random strategy for setting payouts
             print("Body has left the foyer")
             print("Checking for machines...")
             #print("Body CM")
@@ -107,7 +127,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             #print("position")
             #print(position)
             #Check for machine play
-            machine_id = PlayMachine(machines, body_cm)
+            machine_id = casino.check_for_play(body_cm) #returns the machine played (i+1) or 0 if no machine played
             print("machines.ID..")
             print(last_machine_id)
             file_exists = os.path.isfile(csv_playlog)
@@ -115,8 +135,12 @@ def receive_rigid_body_frame(new_id, position, rotation):
                 current_time = time.time()
                 if last_machine_id == 0:
                     print("ran loop")
-                    if current_time - last_play_time >= 5:
+                    if current_time - last_play_time >= WAIT_TIME: #Execute code for player pulling bandit arm
                         print("MACHINE " + str(machine_id) + " PLAYED")
+                        bandits[machine_id-1].play()
+                        print("Payout: " + str(bandits[machine_id-1].get_payout()))
+                        total_payout += bandits[machine_id-1].get_payout()
+                        print("Total Payout: " + str(total_payout))
                         #timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 # Append to CSV file
                         with open(csv_playlog, mode="a", newline="") as file:

@@ -1,34 +1,22 @@
 import numpy as np
-#Sample usage:
-"""
-M = .2
-B = 1
-bandit1 = Bandit(B/4)
-bandit2 = Bandit(B/4)
-bandit3 = Bandit(B/4)
-bandit4 = Bandit(B/4)
-casino = Casino([bandit1, bandit2, bandit3, bandit4], B, M)
-#(after player detected leaving foyer:)
-casino.setPayoutsRandom()
-#after player detected playing slot machine 1:
-reward = bandit1.pull
-print(reward)
-"""
+from shapely.geometry import Polygon
+from shapely.geometry import Point
+
 class Casino:
     def __init__(self, bandits, B, M):
         self.bandits = bandits
         self.B = B
         self.M = M
     
-    def setPayoutsRandom(self):
+    def set_payouts_random(self):
         """Set the payouts of the bandits randomly while maintaining constraints."""
-        current_payouts = [bandit.p for bandit in self.bandits]
+        current_payouts = [bandit.get_payout() for bandit in self.bandits]
         new_payouts = []
         
         # Generate random changes within M constraint
         for p in current_payouts:
             change = np.random.uniform(-self.M, self.M)
-            new_p = np.clip(p + change, 0, 1)
+            new_p = np.clip(p + change, 0, 1) #limit payout to [0,1]
             new_payouts.append(new_p)
         
         # Scale to maintain sum = B
@@ -38,17 +26,34 @@ class Casino:
         
         # Update bandits
         for bandit, payout in zip(self.bandits, new_payouts):
-            bandit.setPayout(payout)
+            bandit.set_payout(payout)
+    
+    def check_for_play(self, body_cm):
+        """Check if the player is playing any of the bandits."""
+        for i, bandit in enumerate(self.bandits):
+            if bandit.is_played(body_cm):
+                return i+1
+        return 0
         
 class Bandit:
-    def __init__(self, p):
+    def __init__(self, p, points):
         self.p = p
         self.N = 0 #Number of times the bandit has been pulled
+        self.polygon = Polygon(points) #define the polygon for the bandit
 
-    def pull(self):
+    def get_payout(self):
+        """Get the payout of the bandit."""
+        return self.p
+    
+    def play(self):
         """Simulate pulling the bandit arm."""
+        self.N += 1
         return np.random.random() < self.p
 
-    def setPayout(self, x):
+    def set_payout(self, x):
         """Update the payout of the bandit."""
         self.p = x
+    
+    def is_played(self, body_cm):
+        """Check if the player is playing this machine."""
+        return self.polygon.contains(body_cm)
