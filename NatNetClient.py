@@ -1644,12 +1644,13 @@ class NatNetClient:
 
             #dc, rigid_body_data = self.__unpack_rigid_body_data( data[offset:], packet_size, major, minor )
             #rigid_body_data_str=mocap_data.rigid_body_data.get_as_string()
-            print(rigid_body_data_str)
+            #print(rigid_body_data_str)
 
             #mocap_data.rigid_body_data.save_csv()
             mocap_data_str=mocap_data.get_as_string()
             if print_level >= 1:
-                print("%s\n"%mocap_data_str)
+                #print("%s\n"%mocap_data_str)
+                pass
 
         elif message_id == self.NAT_MODELDEF :
             trace( "Message ID  : %3.1d NAT_MODELDEF"% message_id )
