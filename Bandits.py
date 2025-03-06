@@ -1,3 +1,5 @@
+import numpy as np
+
 class Casino:
     def __init__(self, bandits):
         self.bandits = bandits
