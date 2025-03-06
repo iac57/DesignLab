@@ -52,7 +52,11 @@ last_play_time = 0  # Stores last play timestamp in seconds
 FRAME_COUNTER = 0
 TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
+<<<<<<< HEAD
 trial_number = 0 #Initialize trial number
+=======
+trial_number = 1 #Initialize trial number
+>>>>>>> 2511268 (Ready for experiment)
 rigid_body_id = 1
 #Another callback method. This function is called once per rigid body per frame
 def receive_rigid_body_frame(new_id, position, rotation):
@@ -108,8 +112,8 @@ def receive_rigid_body_frame(new_id, position, rotation):
             #print("position")
             #print(position)
             #Check for machine play
-            machine_id = PlayMachine(machines, body_cm)
-            print("machines.ID..")
+            machine_id, won = PlayMachine(machines, body_cm)
+            print("machine ID..")
             print(last_machine_id)
             file_exists = os.path.isfile(csv_playlog)
             if machine_id > 0: #check is machine played
@@ -118,13 +122,17 @@ def receive_rigid_body_frame(new_id, position, rotation):
                     print("ran loop")
                     if current_time - last_play_time >= 5:
                         print("MACHINE " + str(machine_id) + " PLAYED")
+                        if won:
+                            print("You won!")
+                        else:
+                            print("Loser")
                         #timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 # Append to CSV file
                         with open(csv_playlog, mode="a", newline="") as file:
                             writer = csv.writer(file)
                             if not file_exists:
-                                writer.writerow(["Trial Number", "Frame", "Machine ID"])
-                            writer.writerow([trial_number, TOTAL_FRAMES, machine_id]) 
+                                writer.writerow(["Trial Number", "Frame", "Machine ID, Reward"])
+                            writer.writerow([trial_number, TOTAL_FRAMES, machine_id, won]) 
                         last_play_time = current_time
             last_machine_id = machine_id
 
@@ -252,7 +260,7 @@ def my_parse_args(arg_list, args_dict):
 if __name__ == "__main__":
 
     optionsDict = {}
-    optionsDict["clientAddress"] = "192.168.1.163"
+    optionsDict["clientAddress"] = "192.168.1.130"
     optionsDict["serverAddress"] = "10.229.139.24"
     optionsDict["use_multicast"] = True
 

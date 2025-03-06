@@ -23,18 +23,19 @@ class Casino:
     def setPayoutsRandom(self):
         """Set the payouts of the bandits randomly while maintaining constraints."""
         current_payouts = [bandit.p for bandit in self.bandits]
-        new_payouts = []
+        new_payouts = [np.random.random() for _ in range(4)]
         
         # Generate random changes within M constraint
-        for p in current_payouts:
-            change = np.random.uniform(-self.M, self.M)
-            new_p = np.clip(p + change, 0, 1)
-            new_payouts.append(new_p)
+        #for p in current_payouts:
+        #    change = np.random.uniform(-self.M, self.M)
+        #    new_p = np.clip(p + change, 0, 1)
+        #    new_payouts.append(new_p)
         
         # Scale to maintain sum = B
         total = sum(new_payouts)
-        if total > 0:
-            new_payouts = [p * (self.B / total) for p in new_payouts]
+        #if total > 0:
+        #scales it so that the sum is B
+        new_payouts = [p * (self.B / total) for p in new_payouts]
         
         # Update bandits
         for bandit, payout in zip(self.bandits, new_payouts):
@@ -46,7 +47,8 @@ class Bandit:
         self.N = 0 #Number of times the bandit has been pulled
 
     def pull(self):
-        """Simulate pulling the bandit arm."""
+        """Returns 1 is the random number is less than p. Simulates
+        Generating 1 with probability p and 0 otherwise."""
         return np.random.random() < self.p
 
     def setPayout(self, x):
