@@ -4,10 +4,10 @@ class FoyerDetector:
     def __init__(self):
         # Define foyer boundaries (example coordinates)
         self.foyer_polygon = Polygon([
-            (3, 1.5),    # Bottom-left corner
-            (0, 1.5),    # Bottom-right corner
+            (1.5, 3),    # Bottom-left corner
+            (1.5, 0),    # Bottom-right corner
             (0, 0),    # Top-right corner
-            (3, 0)     # Top-left corner
+            (0, 3)     # Top-left corner
         ])
         self.was_in_foyer = True
     #FIXME can refactor to pass in a point instead of a list for current_position

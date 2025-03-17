@@ -53,7 +53,7 @@ FRAME_COUNTER = 0
 TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
 trial_number = 1 #Initialize trial number
-rigid_body_id = 1
+rigid_body_id = 3
 #Another callback method. This function is called once per rigid body per frame
 def receive_rigid_body_frame(new_id, position, rotation):
     #Is this function called for each rigid body or on all rigid bodies active?
@@ -102,6 +102,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
         if not loc.is_in_foyer(body_cm):
             print("Body has left the foyer")
             print("Checking for machines...")
+            print(body_cm)
             #print("Body CM")
             #print(body_cm)
             #print("position")
