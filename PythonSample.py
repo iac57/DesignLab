@@ -27,6 +27,8 @@ from PlayMachine import PlayMachine, machines
 from shapely.geometry import Point
 from FoyerDetector import FoyerDetector
 import os
+import numpy as np
+from scipy.spatial.transform import Rotation as R
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -54,7 +56,17 @@ TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
 trial_number = 1 #Initialize trial number
 rigid_body_id = 3
+
 #Another callback method. This function is called once per rigid body per frame
+def classify_torso_angle(quaternion):
+    euler_angles = R.from_quat(quaternion).as_euler('zyx', degrees=True)
+    torso_angle = euler_angles[1]
+    if torso_angle < 0:
+        answer = 12
+    else:
+        answer = 34
+    return answer
+
 def receive_rigid_body_frame(new_id, position, rotation):
     #Is this function called for each rigid body or on all rigid bodies active?
     # To-Do: Modify function to label rows of data from previous trial with slot machine choice using PlayMachine result
@@ -65,6 +77,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     FRAME_COUNTER += 1
     TOTAL_FRAMES += 1 #This is for printing frame number in csv. FIXME: Maybe there's a pre-existing variable for this?
     loc = FoyerDetector()
+    prediction = None
     # This code should work even when multiple rigid bodies are being tracked.
     # _unpack_rigid_body() is called by unpack_rigid_body_data() for each rigid body in the frame. 
     # _unpack_rigid_body_data() is called by _unpack_mocap_data once per frame.
@@ -82,7 +95,12 @@ def receive_rigid_body_frame(new_id, position, rotation):
             FRAME_COUNTER = 0
             #print('hello world')
             filename = "rigid_body_data.csv"
+            prediction = classify_torso_angle(rotation)
             file_exists = os.path.isfile(filename)
+            #euler_angles = R.from_quat(rotation).as_euler('zyx', degrees=True)
+            #torso_angle = euler_angles[1]
+            #print("TORSO Orientation")
+            #print(torso_angle)
             with open(filename, mode="a", newline="") as file:
                 writer = csv.writer(file)
                 # Write header if the file is new.
@@ -103,10 +121,6 @@ def receive_rigid_body_frame(new_id, position, rotation):
             print("Body has left the foyer")
             print("Checking for machines...")
             print(body_cm)
-            #print("Body CM")
-            #print(body_cm)
-            #print("position")
-            #print(position)
             #Check for machine play
             machine_id, won = PlayMachine(machines, body_cm)
             print("machine ID..")
@@ -127,8 +141,8 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         with open(csv_playlog, mode="a", newline="") as file:
                             writer = csv.writer(file)
                             if not file_exists:
-                                writer.writerow(["Trial Number", "Frame", "Machine ID, Reward"])
-                            writer.writerow([trial_number, TOTAL_FRAMES, machine_id, won]) 
+                                writer.writerow(["Trial Number", "Frame", "Machine ID", "Reward", "Prediction"])
+                            writer.writerow([trial_number, TOTAL_FRAMES, machine_id, won, prediction]) 
                         last_play_time = current_time
             last_machine_id = machine_id
 

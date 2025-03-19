@@ -1,4 +1,4 @@
-Trial Number,Frame,"Machine ID, Reward"
+Trial Number,Frame,Machine ID,Reward
 1,806,1,False
 2,2629,2,True
 3,4092,3,False
