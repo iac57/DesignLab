@@ -17,7 +17,6 @@ def process_last_trial_rows(input_file, machine_file, output_file):
     merged_df = pd.merge(last_rows, last_machine_rows[['Trial Number', 'Machine ID']], on="Trial Number", how="inner")
 
     # Compute torso angle and classify
-    correct_predictions = 0
     total_trials = len(merged_df)
     results = []
     trial_correctness = []  
@@ -30,23 +29,30 @@ def process_last_trial_rows(input_file, machine_file, output_file):
         classification = 12 if torso_angle > 0 else 34
         correct = (row["Machine ID"] in [1, 2] and classification == 12) or (row["Machine ID"] in [3, 4] and classification == 34)
 
-        if correct:
-            correct_predictions += 1
-
         results.append({"Trial Number": row["Trial Number"], "Torso Classification": classification, "Machine ID": row["Machine ID"], "Correct": correct})
         trial_correctness.append((row["Trial Number"], int(correct)))
 
-    # Compute accuracy
-    accuracy = (correct_predictions / total_trials) * 100 if total_trials > 0 else 0
+    # Convert correctness list to DataFrame
+    correctness_df = pd.DataFrame(trial_correctness, columns=["Trial Number", "Correct"])
     
+    # Compute overall accuracy
+    overall_accuracy = correctness_df["Correct"].mean() * 100 if total_trials > 0 else 0
+
+    # Compute accuracy for first 30 trials
+    first_30 = correctness_df.head(30)
+    first_30_accuracy = first_30["Correct"].mean() * 100 if len(first_30) > 0 else 0
+
+    # Compute accuracy for last 30 trials
+    last_30 = correctness_df.tail(40)
+    last_30_accuracy = last_30["Correct"].mean() * 100 if len(last_30) > 0 else 0
 
     # Save results to a new CSV
     result_df = pd.DataFrame(results)
     result_df.to_csv(output_file, index=False)
 
-    trial_numbers, correctness = zip(*trial_correctness)
+    # Plot accuracy per trial
     plt.figure(figsize=(8, 5))
-    plt.scatter(trial_numbers, correctness, marker='o', color='b', label="Correct (1) / Incorrect (0)")
+    plt.scatter(correctness_df["Trial Number"], correctness_df["Correct"], marker='o', color='b', label="Correct (1) / Incorrect (0)")
     plt.xlabel("Trial Number")
     plt.ylabel("Correct Classification (1 = Yes, 0 = No)")
     plt.title("Classification Accuracy per Trial")
@@ -55,12 +61,15 @@ def process_last_trial_rows(input_file, machine_file, output_file):
     plt.legend()
     plt.show()
 
-    return accuracy, result_df
+    return overall_accuracy, first_30_accuracy, last_30_accuracy, result_df
 
 # Example usage:
 input_path = "rigid_body_dataG2.csv"  # Update with actual file path
 machine_path = "machine_play_log_G2.csv"  # Update with actual file path
 output_path = "torso_classification_results.csv"
 
-accuracy, processed_results = process_last_trial_rows(input_path, machine_path, output_path)
-print(f"Accuracy: {accuracy:.2f}%")
+overall_acc, first_30_acc, last_30_acc, processed_results = process_last_trial_rows(input_path, machine_path, output_path)
+
+print(f"Overall Accuracy: {overall_acc:.2f}%")
+print(f"First 30 Trials Accuracy: {first_30_acc:.2f}%")
+print(f"Last 45 Trials Accuracy: {last_30_acc:.2f}%")

@@ -55,7 +55,7 @@ FRAME_COUNTER = 0
 TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
 trial_number = 1 #Initialize trial number
-rigid_body_id = 3
+rigid_body_id = 2
 
 #Another callback method. This function is called once per rigid body per frame
 def classify_torso_angle(quaternion):
@@ -82,6 +82,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     # _unpack_rigid_body() is called by unpack_rigid_body_data() for each rigid body in the frame. 
     # _unpack_rigid_body_data() is called by _unpack_mocap_data once per frame.
     # _unpack_mocap_data() is called by process_message() which is called by _data_thread_function() which is called by run() in NatNetClient.py
+    print(new_id)
     if new_id == rigid_body_id:
         body_cm = Point(position[0], position[2])  # Convert position to a Point 
             #Initialize foyer detection for subject:    
