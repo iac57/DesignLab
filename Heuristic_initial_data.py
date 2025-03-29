@@ -4,7 +4,8 @@ import csv
 import os
 import time
 
-# Initialize pygame\pygame.init()
+# Initialize pygame
+pygame.init()
 
 # Screen setup
 WIDTH, HEIGHT = 600, 400
@@ -12,13 +13,13 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Slot Machine Experiment")
 
 # Define slot machine positions
-M = 1 # sum of all machine probabilities
+M = 2  # Sum of all machine probabilities
 MACHINE_COUNT = 4
 MACHINE_WIDTH = WIDTH // MACHINE_COUNT
 machines = [(i * MACHINE_WIDTH, HEIGHT // 2, MACHINE_WIDTH, MACHINE_WIDTH) for i in range(MACHINE_COUNT)]
 
 # Initial win probabilities (must sum to 1)
-p_win = np.array([M/MACHINE_COUNT, M/MACHINE_COUNT, M/MACHINE_COUNT, M/MACHINE_COUNT])
+p_win = np.array([M / MACHINE_COUNT, M / MACHINE_COUNT, M / MACHINE_COUNT, M / MACHINE_COUNT])
 
 # Data storage
 data = []
@@ -27,6 +28,9 @@ data = []
 TOTAL_TRIALS = 30
 alpha = 0.05  # Learning rate for probability updates
 
+# Set up font for displaying trial and win/loss
+font = pygame.font.SysFont('Arial', 24)
+
 # Function to determine win/loss
 def play_machine(machine_index):
     return np.random.rand() < p_win[machine_index]
@@ -34,6 +38,7 @@ def play_machine(machine_index):
 # Run experiment
 running = True
 trial = 0
+last_win = None  # To store the last win/loss outcome
 while running and trial < TOTAL_TRIALS:
     screen.fill((255, 255, 255))
     
@@ -41,6 +46,11 @@ while running and trial < TOTAL_TRIALS:
     for i, rect in enumerate(machines):
         pygame.draw.rect(screen, (100, 100, 255), rect)
         pygame.draw.rect(screen, (0, 0, 0), rect, 3)  # Draw border
+
+    # Display the most recent trial number and win/loss
+    if last_win is not None:
+        trial_text = font.render(f"Trial {trial}: {last_win}", True, (0, 0, 0))
+        screen.blit(trial_text, (WIDTH // 2 - trial_text.get_width() // 2, HEIGHT // 4))
     
     pygame.display.flip()
     
@@ -54,6 +64,7 @@ while running and trial < TOTAL_TRIALS:
                     win = play_machine(i)
                     data.append((trial, i, win))
                     trial += 1
+                    last_win = "Win" if win else "Loss"
                     print(f"Trial {trial}: Machine {i} {'Win' if win else 'Loss'}")
                     
                     # Heuristic model: Adjust probabilities
@@ -64,7 +75,7 @@ while running and trial < TOTAL_TRIALS:
                     
                     # Normalize to keep sum = 1
                     p_win /= p_win.sum()
-                    p_win = M*p_win
+                    p_win = M * p_win
 
 # Save data to CSV
 # Create a data folder if it doesn't exist
