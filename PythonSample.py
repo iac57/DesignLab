@@ -18,6 +18,7 @@
 # Uses the Python NatNetClient.py library to establish a connection (by creating a NatNetClient),
 # and receive data via a NatNet connection and decode it using the NatNetClient library.
 import csv
+import socket
 import sys
 import time
 from NatNetClient import NatNetClient
@@ -271,7 +272,9 @@ def my_parse_args(arg_list, args_dict):
 if __name__ == "__main__":
 
     optionsDict = {}
-    optionsDict["clientAddress"] = "192.168.1.130"
+    hostname = socket.gethostname()
+    IPAddr = socket.gethostbyname(hostname)
+    optionsDict["clientAddress"] = IPAddr
     optionsDict["serverAddress"] = "10.229.139.24"
     optionsDict["use_multicast"] = True
 
