@@ -93,7 +93,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             print("trial # incremented")
             was_outof_foyer = False
             print("Body has reentered the foyer")
-        if FRAME_COUNTER == 100:
+        if FRAME_COUNTER == 50:
             FRAME_COUNTER = 0
             #print('hello world')
             filename = "rigid_body_data.csv"

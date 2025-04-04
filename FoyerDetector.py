@@ -6,10 +6,10 @@ class FoyerDetector:
         #x,z
         self.foyer_polygon = Polygon([
 
-            (-1.3, -0.75),   # Flipped from (-0.75, -1.3)
-            (-1.20, 0.8),    # Flipped from (0.8, -1.20)
-            (-0.5, 0.75),    # Flipped from (0.75, -0.5)
-            (-0.65, -0.85)
+            (-1.3, -0.8),   # Flipped from (-0.75, -1.3)
+            (-1.20, 0.85),    # Flipped from (0.8, -1.20)
+            (-0.5, 0.85),    # Flipped from (0.75, -0.5)
+            (-0.65, -0.9)
 
             
             #(-0.75, -1.3),    # Bottom-left corner
