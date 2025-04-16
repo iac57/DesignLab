@@ -1,0 +1,13 @@
+Classification Report for last_n strategy:
+Parameters: {'n': 2}
+
+              precision    recall  f1-score   support
+
+           1       1.00      0.45      0.62        11
+           2       0.50      0.90      0.64        10
+           3       0.73      0.79      0.76        14
+           4       0.83      0.56      0.67         9
+
+    accuracy                           0.68        44
+   macro avg       0.77      0.67      0.67        44
+weighted avg       0.77      0.68      0.68        44

@@ -28,9 +28,10 @@ from PlayMachine import PlayMachine, machines
 from shapely.geometry import Point
 from FoyerDetector import FoyerDetector
 import os
+import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from realtime_predictor import MotionPredictor
+from model_loader import get_predictor
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -46,25 +47,22 @@ def receive_new_frame(data_dict):
             out_string+="/"
         print(out_string)
 
-# This is a callback function that gets connected to the NatNet client. It is called once per rigid body per frame
-# This is a callback function that gets triggered once per rigid body per frame
-
+predictor = get_predictor()
 csv_playlog = "machine_play_log.csv"
-# State variables to track last machine played and last play time
+trial_file = "rigid_body_data.csv"
 last_machine_id = 0
 last_play_time = 0  # Stores last play timestamp in seconds
 FRAME_COUNTER = 0  # Single counter for both rigid bodies
 TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
 trial_number = 1 #Initialize trial number
-torso_rigid_body_id = 3  # ID for torso rigid body
+torso_rigid_body_id = 1  # ID for torso rigid body
 head_rigid_body_id = 2   # ID for head rigid body
 current_frame_data = {}  # Store data for current frame
 last_foyer_state = None  # Track last foyer state to prevent duplicate messages
-
 # Sampling rate configuration
 MOCAP_FRAMERATE = 200  # Motive's capture rate in Hz
-SAMPLING_RATE = 4  # Desired samples per second
+SAMPLING_RATE = 10  # (Hz)
 FRAME_INTERVAL = MOCAP_FRAMERATE // SAMPLING_RATE  # Automatically calculate frames to skip
 
 # To change sampling rate, just modify SAMPLING_RATE
@@ -115,7 +113,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             
             # Log state changes
             if current_foyer_state != last_foyer_state: #If player enters/leaves foyer
-                with open("debug_log.txt", "a") as log_file:
+                with open("debug_log.txt", "a") as log_file, open("prediction_log.txt", "a") as prediction_file:
                     if current_foyer_state: #If player is in foyer
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has entered the foyer\n")
                         # Only increment trial if we were previously out of the foyer
@@ -126,7 +124,12 @@ def receive_rigid_body_frame(new_id, position, rotation):
                             was_outof_foyer = False
                             last_machine_id = 0  # Reset machine ID for new trial
                             log_file.write(f"Frame {TOTAL_FRAMES}: Body has reentered the foyer\n")
+                    
+                    #Make MoCap rediction as soon as player leaves the foyer"
                     else: #If player is out of the foyer
+                        data_df = pd.read_csv(trial_file) #since rigid_body_data is being continuously updated, i need to continuously read it into a dataframe
+                        result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
+                        prediction_file.write(f"Prediction for Trial {trial_number}: {result}\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has left the foyer\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Checking for machines...\n")
                         was_outof_foyer = True  # Set this when body leaves foyer
@@ -144,7 +147,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         if not file_exists:
                             writer.writerow(["Trial Number", "Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
                                         "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"])
-                        # Write head data first (ID 2)
+                        # Write head data first
                         if head_rigid_body_id in current_frame_data:
                             head_data = current_frame_data[head_rigid_body_id]
                             writer.writerow([trial_number, TOTAL_FRAMES, head_rigid_body_id, *head_data['position'], *head_data['rotation']])
@@ -153,7 +156,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         else:
                             with open("debug_log.txt", "a") as log_file:
                                 log_file.write(f"Frame {TOTAL_FRAMES}: Warning: Head data (ID {head_rigid_body_id}) not found in current frame\n")
-                        # Write torso data second (ID 3)
+                        # Write torso data second
                         writer.writerow([trial_number, TOTAL_FRAMES, torso_rigid_body_id, *torso_data['position'], *torso_data['rotation']])
                         with open("debug_log.txt", "a") as log_file:
                             log_file.write(f"Frame {TOTAL_FRAMES}: Writing torso data (ID {torso_rigid_body_id})\n")
