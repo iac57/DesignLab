@@ -115,6 +115,16 @@ while running and trial < TOTAL_TRIALS:
                 # Ignore clicks outside valid areas (machines or reset button)
                 if not machine_clicked:
                     print("Invalid click: Not on a machine or reset button.")
+                    
+# Display total wins before quitting
+total_wins = sum(1 for _, _, win in data if win)
+screen.fill((255, 255, 255))
+final_text = font.render(f"Experiment complete! Total wins: {total_wins}/{TOTAL_TRIALS}", True, (0, 0, 0))
+screen.blit(final_text, (WIDTH // 2 - final_text.get_width() // 2, HEIGHT // 2))
+pygame.display.flip()
+
+# Pause for a few seconds to let the player see the result
+time.sleep(5)
 
 # Save data to CSV
 os.makedirs("data", exist_ok=True)

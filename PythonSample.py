@@ -30,6 +30,7 @@ from FoyerDetector import FoyerDetector
 import os
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from behavioral_model import BehavioralModel
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -57,6 +58,8 @@ TOTAL_FRAMES = 0
 was_outof_foyer = False #Flag to check if the body is in the foyer
 trial_number = 1 #Initialize trial number
 rigid_body_id = 2
+behavioral_model = BehavioralModel()
+last_win = 0
 
 #Another callback method. This function is called once per rigid body per frame
 def classify_torso_angle(quaternion):
@@ -136,8 +139,13 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         print("MACHINE " + str(machine_id) + " PLAYED")
                         if won:
                             print("You won!")
+                            last_win=1
                         else:
                             print("Loser")
+                            last_win=0
+                        #update behavioral models
+                        behavioral_model.update(machine_id, behavioral_prediction)
+                        behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
                         #timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 # Append to CSV file
                         with open(csv_playlog, mode="a", newline="") as file:
