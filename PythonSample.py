@@ -33,6 +33,9 @@ from scipy.spatial.transform import Rotation as R
 from behavioral_model import BehavioralModel
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
+def default_q_values(): #need to define this to unpickle the Q-learning model
+    return np.zeros(4)
+
 def receive_new_frame(data_dict):
     order_list=[ "frameNumber", "markerSetCount", "unlabeledMarkersCount", "rigidBodyCount", "skeletonCount",
                 "labeledMarkerCount", "timecode", "timecodeSub", "timestamp", "isRecording", "trackedModelsChanged" ]
