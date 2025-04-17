@@ -31,7 +31,7 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from model_loader import get_predictor
+#from model_loader import get_predictor
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -47,7 +47,7 @@ def receive_new_frame(data_dict):
             out_string+="/"
         print(out_string)
 
-predictor = get_predictor()
+#predictor = get_predictor()
 csv_playlog = "machine_play_log.csv"
 trial_file = "rigid_body_data.csv"
 last_machine_id = 0
@@ -128,8 +128,8 @@ def receive_rigid_body_frame(new_id, position, rotation):
                     #Make MoCap rediction as soon as player leaves the foyer"
                     else: #If player is out of the foyer
                         data_df = pd.read_csv(trial_file) #since rigid_body_data is being continuously updated, i need to continuously read it into a dataframe
-                        result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
-                        prediction_file.write(f"Prediction for Trial {trial_number}: {result}\n")
+                        #result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
+                       # prediction_file.write(f"Prediction for Trial {trial_number}: {result}\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has left the foyer\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Checking for machines...\n")
                         was_outof_foyer = True  # Set this when body leaves foyer
