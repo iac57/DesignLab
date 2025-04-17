@@ -14,35 +14,48 @@ class BehavioralModel:
         self.predictor = MachineProbabilityPredictor()
         self.repeater = RepeaterCheck()
 
+        self.P_correct_predictions = 0
+        self.QL_correct_predictions = 0
         self.correct_predictions = 0
         self.total_predictions = 0
+
+        self.P_prediction = 5
+        self.QL_prediction = 5
 
     def predict(self, trial, last_machine, last_win):
         state = (trial, last_machine, last_win)
 
         if state in self.Q:
-            QL_prediction = np.argmax(self.Q[state])
+            self.QL_prediction = np.argmax(self.Q[state])
         else:
-            QL_prediction = np.random.choice(4)
+            self.QL_prediction = np.random.choice(4)
 
-        P_prediction = self.predictor.predict()
+        self.P_prediction = self.predictor.predict()
         check = self.repeater.check()
 
-        P_accuracy = self.correct_predictions / self.total_predictions if self.total_predictions > 0 else 0
+        P_accuracy = self.P_correct_predictions / self.total_predictions if self.total_predictions > 0 else 0
+        QL_accuracy = self.QL_correct_predictions / self.total_predictions if self.total_predictions > 0 else 0
 
         if check == 1:
             return self.repeater.last_machine
         elif trial < 5:
-            return QL_prediction
-        elif P_accuracy > 0.8:
-            return P_prediction
+            return self.QL_prediction
+        elif P_accuracy > QL_accuracy:
+            return self.P_prediction
         else:
-            return QL_prediction
+            return self.QL_prediction
 
     def update(self, actual_machine, predicted_machine):
         if actual_machine == predicted_machine:
             self.correct_predictions += 1
+        if actual_machine == self.P_prediction:
+            self.P_correct_predictions += 1
+        if actual_machine == self.QL_prediction:
+            self.QL_correct_predictions += 1
         self.total_predictions += 1
 
         self.predictor.update(actual_machine)
         self.repeater.update(actual_machine)
+
+    def get_accuracy(self):
+        return self.correct_predictions / self.total_predictions if self.total_predictions > 0 else 0
