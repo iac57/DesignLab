@@ -5,11 +5,11 @@ class RepeaterCheck:
 
     def check(self, machine):
         if machine == self.prev_machine:
-            count += 1
-            if count > 2:
+            self.count += 1
+            if self.count > 2:
                 return 1
         else:
-            count =0
+            self.count =0
             return 0
     
     def update(self, machine):

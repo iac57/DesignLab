@@ -10,7 +10,7 @@ class MachineProbabilityPredictor:
         self.num_machines = num_machines
 
     def update(self, machine_played):
-        self.machine_counts[machine_played] += 1
+        self.machine_counts[machine_played-1] += 1
         self.total_count += 1
 
     def predict(self):

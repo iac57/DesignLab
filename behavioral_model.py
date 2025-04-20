@@ -26,12 +26,12 @@ class BehavioralModel:
             QL_prediction = np.random.choice(4)
 
         P_prediction = self.predictor.predict()
-        check = self.repeater.check()
+        check = self.repeater.check(last_machine)
 
         P_accuracy = self.correct_predictions / self.total_predictions if self.total_predictions > 0 else 0
 
         if check == 1:
-            return self.repeater.last_machine
+            return self.repeater.prev_machine
         elif trial < 5:
             return QL_prediction
         elif P_accuracy > 0.8:
