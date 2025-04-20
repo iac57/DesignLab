@@ -66,6 +66,7 @@ torso_rigid_body_id = 1  # ID for torso rigid body
 head_rigid_body_id = 2   # ID for head rigid body
 current_frame_data = {}  # Store data for current frame
 last_foyer_state = None  # Track last foyer state to prevent duplicate messages
+rigid_body_id = 2
 # Sampling rate configuration
 MOCAP_FRAMERATE = 200  # Motive's capture rate in Hz
 SAMPLING_RATE = 10  # (Hz)
@@ -106,6 +107,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
     # Add code to detect when someone has left the foyer
     # Estimate foyer boundary coordinates using Motive gridworld
     global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, rigid_body_id, TOTAL_FRAMES # Allow modifying global state variables
+    global torso_rigid_body_id, head_rigid_body_id, FRAME_INTERVAL, current_frame_data, last_foyer_state, behavioral_model, last_win, behavioral_prediction 
     #"global" keyword is used to modify a global variable inside a function rather than create a local copy of it
     FRAME_COUNTER += 1
     TOTAL_FRAMES += 1 #This is for printing frame number in csv. FIXME: Maybe there's a pre-existing variable for this?
@@ -169,7 +171,6 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         if won:
                             print("You won!")
                             last_win=1
-    global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state, behavioral_model, last_win, behavioral_prediction 
     
     # Store data for this rigid body in the current frame
     current_frame_data[new_id] = {
@@ -194,7 +195,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             body_cm = Point(torso_data['position'][0], torso_data['position'][2])
             
             loc = FoyerDetector()
-            prediction = None
+            mocap_prediction = None
             
             # Check current foyer state
             current_foyer_state = loc.is_in_foyer(body_cm)
@@ -218,12 +219,14 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         data_df = pd.read_csv(trial_file) #since rigid_body_data is being continuously updated, i need to continuously read it into a dataframe
                         #transform data_df into the format that the model expects:
                         # for last_n, that'll be a 140-length feature vector
-                        result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
+                        #FIXME: Confirm that I can replace this with extract
+                        mocap_prediction = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
+                        casino.setPayoutsMoCap(mocap_prediction['prediction'])
                         # Debugging why the prediction is not working:
                         # Does the csv need to be in pandas dataframe format? Is it in this format? What does pd.read_csv do?
                         #updated process_frame to use feature_columns XYZ WXYZ not XYZ_WXYZ per sample
 
-                        prediction_file.write(f"MoCap Prediction for Trial {trial_number}: {result['prediction']}\n")
+                        prediction_file.write(f"MoCap Prediction for Trial {trial_number}: {mocap_prediction['prediction']}\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has left the foyer\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Checking for machines...\n")
                         was_outof_foyer = True  # Set this when body leaves foyer
@@ -271,7 +274,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         behavioral_model.update(machine_id, behavioral_prediction)
                         behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
                         accuracy=behavioral_model.get_accuracy()
-                        casino.setPayoutsBehavioral(behavioral_prediction+1,accuracy)
+                        casino.setPayoutsBehavioral(behavioral_prediction,accuracy)
                         behavioral_model.update(machine_id, behavioral_prediction)
                         behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
                         prediction_file.write(f"Behavioral Prediction for Trial {trial_number}: {behavioral_prediction}\n")
