@@ -31,14 +31,11 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from behavioral_model import BehavioralModel
-from Bandits import Casino, Bandit
 from model_loader import get_predictor
+from Bandits import Casino, Bandit
+from behavioral_model import BehavioralModel
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
-def default_q_values(): #need to define this to unpickle the Q-learning model
-    return np.zeros(4)
-
 def receive_new_frame(data_dict):
     order_list=[ "frameNumber", "markerSetCount", "unlabeledMarkersCount", "rigidBodyCount", "skeletonCount",
                 "labeledMarkerCount", "timecode", "timecodeSub", "timestamp", "isRecording", "trackedModelsChanged" ]
@@ -52,8 +49,7 @@ def receive_new_frame(data_dict):
             out_string+="/"
         print(out_string)
 
-predictor = get_predictor() #get unpickled model from model_loader.py
-# Initialize variables
+predictor = get_predictor()
 csv_playlog = "machine_play_log.csv"
 trial_file = "rigid_body_data.csv"
 last_machine_id = 0
@@ -66,21 +62,10 @@ torso_rigid_body_id = 1  # ID for torso rigid body
 head_rigid_body_id = 2   # ID for head rigid body
 current_frame_data = {}  # Store data for current frame
 last_foyer_state = None  # Track last foyer state to prevent duplicate messages
-rigid_body_id = 2
 # Sampling rate configuration
 MOCAP_FRAMERATE = 200  # Motive's capture rate in Hz
 SAMPLING_RATE = 10  # (Hz)
 FRAME_INTERVAL = MOCAP_FRAMERATE // SAMPLING_RATE  # Automatically calculate frames to skip
-
-# To change sampling rate, just modify SAMPLING_RATE
-# For example:
-# SAMPLING_RATE = 10  # For 10 samples per second
-# SAMPLING_RATE = 20  # For 20 samples per second
-def default_q_values():
-    return np.zeros(4)
-
-behavioral_model = BehavioralModel()
-last_win = 0
 
 M = .2
 B = 2
@@ -89,9 +74,21 @@ bandit2 = Bandit(B/4)
 bandit3 = Bandit(B/4)
 bandit4 = Bandit(B/4)
 casino = Casino([bandit1, bandit2, bandit3, bandit4], B, M)
-behavioral_prediction = np.random.randint(1, 5) #Randomly initialize the behavioral prediction to a machine ID (1-4)
+def default_q_values():
+    return np.zeros(4)
+
+behavioral_model = BehavioralModel()  # Create an instance of the class
+behavioral_prediction = 1 #initialize
+last_win = 0
+
+# To change sampling rate, just modify SAMPLING_RATE
+# For example:
+# SAMPLING_RATE = 10  # For 10 samples per second
+# SAMPLING_RATE = 20  # For 20 samples per second
 
 #Another callback method. This function is called once per rigid body per frame
+
+
 def classify_torso_angle(quaternion):
     euler_angles = R.from_quat(quaternion).as_euler('zyx', degrees=True)
     torso_angle = euler_angles[1]
@@ -102,75 +99,7 @@ def classify_torso_angle(quaternion):
     return answer
 
 def receive_rigid_body_frame(new_id, position, rotation):
-    #Is this function called for each rigid body or on all rigid bodies active?
-    # To-Do: Modify function to label rows of data from previous trial with slot machine choice using PlayMachine result
-    # Add code to detect when someone has left the foyer
-    # Estimate foyer boundary coordinates using Motive gridworld
-    global last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, rigid_body_id, TOTAL_FRAMES # Allow modifying global state variables
-    global torso_rigid_body_id, head_rigid_body_id, FRAME_INTERVAL, current_frame_data, last_foyer_state, behavioral_model, last_win, behavioral_prediction 
-    #"global" keyword is used to modify a global variable inside a function rather than create a local copy of it
-    FRAME_COUNTER += 1
-    TOTAL_FRAMES += 1 #This is for printing frame number in csv. FIXME: Maybe there's a pre-existing variable for this?
-    loc = FoyerDetector()
-    prediction = None
-    # This code should work even when multiple rigid bodies are being tracked.
-    # _unpack_rigid_body() is called by unpack_rigid_body_data() for each rigid body in the frame. 
-    # _unpack_rigid_body_data() is called by _unpack_mocap_data once per frame.
-    # _unpack_mocap_data() is called by process_message() which is called by _data_thread_function() which is called by run() in NatNetClient.py
-    print(new_id)
-    if new_id == rigid_body_id:
-        body_cm = Point(position[0], position[2])  # Convert position to a Point 
-            #Initialize foyer detection for subject:    
-    if loc.is_in_foyer(body_cm):
-        if was_outof_foyer:
-            trial_number+=1
-            print("trial # incremented")
-            was_outof_foyer = False
-            print("Body has reentered the foyer")
-        if FRAME_COUNTER == 50:
-            FRAME_COUNTER = 0
-            #print('hello world')
-            filename = "rigid_body_data.csv"
-            prediction = classify_torso_angle(rotation)
-            file_exists = os.path.isfile(filename)
-            #euler_angles = R.from_quat(rotation).as_euler('zyx', degrees=True)
-            #torso_angle = euler_angles[1]
-            #print("TORSO Orientation")
-            #print(torso_angle)
-            with open(filename, mode="a", newline="") as file:
-                writer = csv.writer(file)
-                # Write header if the file is new.
-                if not file_exists:
-                    #Initialize header for the CSV file
-                    writer.writerow(["Trial Number", "Frame Number", "Rigid Body ID", "Position X", "Position Y", "Position Z",
-                                "Orientation W", "Orientation X", "Orientation Y", "Orientation Z"]) #I got rid of Frame Number
-                # Write data to the CSV file
-                writer.writerow([trial_number, TOTAL_FRAMES, new_id,*position,*rotation]) #FIXME: I think we should add frame number here
-        #elif loc.has_left_foyer(body_cm):
-         #   in_foyer = False
-        #    print("Body has left the foyer")
-    
-    else: #Body is out of the foyer
-        was_outof_foyer=True
-        FRAME_COUNTER=0
-        if not loc.is_in_foyer(body_cm):
-            print("Body has left the foyer")
-            print("Checking for machines...")
-            print(body_cm)
-            #Check for machine play
-            machine_id, won = PlayMachine(machines, body_cm, casino)
-            print("machine ID..")
-            print(last_machine_id)
-            file_exists = os.path.isfile(csv_playlog)
-            if machine_id > 0: #check is machine played
-                current_time = time.time()
-                if last_machine_id == 0:
-                    print("ran loop")
-                    if current_time - last_play_time >= 5:
-                        print("MACHINE " + str(machine_id) + " PLAYED")
-                        if won:
-                            print("You won!")
-                            last_win=1
+    global behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state
     
     # Store data for this rigid body in the current frame
     current_frame_data[new_id] = {
@@ -195,7 +124,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             body_cm = Point(torso_data['position'][0], torso_data['position'][2])
             
             loc = FoyerDetector()
-            mocap_prediction = None
+            prediction = None
             
             # Check current foyer state
             current_foyer_state = loc.is_in_foyer(body_cm)
@@ -214,19 +143,13 @@ def receive_rigid_body_frame(new_id, position, rotation):
                             last_machine_id = 0  # Reset machine ID for new trial
                             log_file.write(f"Frame {TOTAL_FRAMES}: Body has reentered the foyer\n")
                     
-                    #Make MoCap rediction as soon as player leaves the foyer"
+                    #Make MoCap prediction as soon as player leaves the foyer"
                     else: #If player is out of the foyer
                         data_df = pd.read_csv(trial_file) #since rigid_body_data is being continuously updated, i need to continuously read it into a dataframe
-                        #transform data_df into the format that the model expects:
-                        # for last_n, that'll be a 140-length feature vector
-                        #FIXME: Confirm that I can replace this with extract
-                        mocap_prediction = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
-                        casino.setPayoutsMoCap(mocap_prediction['prediction'])
-                        # Debugging why the prediction is not working:
-                        # Does the csv need to be in pandas dataframe format? Is it in this format? What does pd.read_csv do?
-                        #updated process_frame to use feature_columns XYZ WXYZ not XYZ_WXYZ per sample
-
-                        prediction_file.write(f"MoCap Prediction for Trial {trial_number}: {mocap_prediction['prediction']}\n")
+                        result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
+                        casino.setPayoutsMoCap(result['prediction'])
+                        prediction_file.write(f"Prediction for Trial {trial_number}: {result}\n")
+                        prediction_file.write(f"Machine Payouts for Machines 1-4: {[bandit.p for bandit in casino.bandits]}\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has left the foyer\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Checking for machines...\n")
                         was_outof_foyer = True  # Set this when body leaves foyer
@@ -259,30 +182,28 @@ def receive_rigid_body_frame(new_id, position, rotation):
                             log_file.write(f"Frame {TOTAL_FRAMES}: Writing torso data (ID {torso_rigid_body_id})\n")
             else:
                 # Only check for machine play if we're not in the foyer
-                machine_id, won = PlayMachine(machines, body_cm)
+                machine_id, won = PlayMachine(machines, body_cm, casino)
                 if machine_id > 0 and last_machine_id == 0:  # Only process first machine play
                     current_time = time.time()
                     if current_time - last_play_time >= 5:  # 5 second cooldown
-                        with open("debug_log.txt", "a") as log_file,  open("prediction_log.txt", "a") as prediction_file:
+                        with open("debug_log.txt", "a") as log_file:
                             log_file.write(f"Frame {TOTAL_FRAMES}: MACHINE {machine_id} PLAYED in trial {trial_number}\n")
                             if won:
                                 log_file.write(f"Frame {TOTAL_FRAMES}: You won!\n")
+                                last_win = 1
                             else:
                                 log_file.write(f"Frame {TOTAL_FRAMES}: Loser\n")
-                                last_win=0
-                        #update behavioral models
-                        behavioral_model.update(machine_id, behavioral_prediction)
-                        behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
-                        accuracy=behavioral_model.get_accuracy()
-                        casino.setPayoutsBehavioral(behavioral_prediction,accuracy)
-                        behavioral_model.update(machine_id, behavioral_prediction)
-                        behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
-                        prediction_file.write(f"Behavioral Prediction for Trial {trial_number}: {behavioral_prediction}\n")
-                        #timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                # Append to CSV file
+                                last_win = 0
+                            behavioral_model.update(machine_id, behavioral_prediction, trial_number) #update the behavioral model with the machine played and the prediction
+                            behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win) #update the prediction
+                            with open("prediction_log.txt", "a") as prediction_file:
+                                prediction_file.write(f"Behavioral Model Prediction for Trial {trial_number}: {behavioral_prediction}\n")
+                                accuracy = behavioral_model.get_accuracy() #get the accuracy of the behavioral model
+                                casino.setPayoutsBehavioral(behavioral_prediction, accuracy) #update the casino payouts based on the behavioral model prediction
+                                prediction_file.write(f"Payouts for Machines 1-4: {[bandit.p for bandit in casino.bandits]}\n")
+                        file_exists2 = os.path.isfile(csv_playlog)
                         with open(csv_playlog, mode="a", newline="") as file:
                             writer = csv.writer(file)
-                            file_exists2 = os.path.isfile(csv_playlog)
                             if not file_exists2:
                                 writer.writerow(["Trial Number", "Frame", "Machine ID", "Reward", "Prediction"])
                             # Use the same frame number as the last written rigid body data

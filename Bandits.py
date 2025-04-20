@@ -44,7 +44,7 @@ class Casino:
     def setPayoutsBehavioral(self, machine_id, accuracy):
         weight=accuracy
         adjustment= weight*self.M
-        pred_bandit=self.bandits(machine_id-1)
+        pred_bandit=self.bandits[machine_id-1]
         payout=pred_bandit.p + adjustment
         pred_bandit.setPayout(payout)
         for bandit in self.bandits:
@@ -55,7 +55,7 @@ class Casino:
     
     def setPayoutsMoCap(self, machine_id):
         adjustment= self.M
-        pred_bandit=self.bandits(machine_id-1)
+        pred_bandit=self.bandits[machine_id-1]
         payout=pred_bandit.p + adjustment
         pred_bandit.setPayout(payout)
         for bandit in self.bandits:

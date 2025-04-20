@@ -1,0 +1,13 @@
+Prediction for Trial 1: {'prediction': np.int64(1), 'probabilities': {np.int64(1): np.float64(0.9560725942500412), np.int64(2): np.float64(1.6257823173949061e-06), np.int64(3): np.float64(0.04392577996764114), np.int64(4): np.float64(1.2234787305655246e-16)}}
+Machine Payouts for Machines 1-4: [0.7, 0.43333333333333335, 0.43333333333333335, 0.43333333333333335]
+Behavioral Model Prediction for Trial 1: 0
+Payouts for Machines 1-4: [0.7, 0.43333333333333335, 0.43333333333333335, 0.43333333333333335]
+Prediction for Trial 2: {'prediction': np.int64(4), 'probabilities': {np.int64(1): np.float64(2.694800127103415e-09), np.int64(2): np.float64(2.4333727361881365e-13), np.int64(3): np.float64(6.509973111141035e-17), np.int64(4): np.float64(0.9999999973049565)}}
+Machine Payouts for Machines 1-4: [0.6333333333333333, 0.3666666666666667, 0.3666666666666667, 0.6333333333333333]
+Behavioral Model Prediction for Trial 2: 0
+Payouts for Machines 1-4: [0.6333333333333333, 0.3666666666666667, 0.3666666666666667, 0.6333333333333333]
+Prediction for Trial 3: {'prediction': np.int64(1), 'probabilities': {np.int64(1): np.float64(0.6960216197617901), np.int64(2): np.float64(3.1902280600323434e-05), np.int64(3): np.float64(6.690209095031697e-10), np.int64(4): np.float64(0.3039464772885886)}}
+Machine Payouts for Machines 1-4: [0.8333333333333333, 0.30000000000000004, 0.30000000000000004, 0.5666666666666667]
+Behavioral Model Prediction for Trial 3: 1
+Payouts for Machines 1-4: [0.8333333333333333, 0.30000000000000004, 0.30000000000000004, 0.5666666666666667]
+
