@@ -31,6 +31,8 @@ import os
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from behavioral_model import BehavioralModel
+from Bandits import Casino, Bandit
+
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -60,6 +62,14 @@ trial_number = 1 #Initialize trial number
 rigid_body_id = 2
 behavioral_model = BehavioralModel()
 last_win = 0
+
+M = .2
+B = 2
+bandit1 = Bandit(B/4)
+bandit2 = Bandit(B/4)
+bandit3 = Bandit(B/4)
+bandit4 = Bandit(B/4)
+casino = Casino([bandit1, bandit2, bandit3, bandit4], B, M)
 
 #Another callback method. This function is called once per rigid body per frame
 def classify_torso_angle(quaternion):
@@ -127,7 +137,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
             print("Checking for machines...")
             print(body_cm)
             #Check for machine play
-            machine_id, won = PlayMachine(machines, body_cm)
+            machine_id, won = PlayMachine(machines, body_cm, casino)
             print("machine ID..")
             print(last_machine_id)
             file_exists = os.path.isfile(csv_playlog)
@@ -146,6 +156,8 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         #update behavioral models
                         behavioral_model.update(machine_id, behavioral_prediction)
                         behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win)
+                        accuracy=behavioral_model.get_accuracy()
+                        casino.setPayoutsBehavioral(behavioral_prediction+1,accuracy)
                         #timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                 # Append to CSV file
                         with open(csv_playlog, mode="a", newline="") as file:
