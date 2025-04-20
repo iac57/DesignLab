@@ -1,0 +1,5 @@
+Best Model Information:
+Strategy: last_n
+Parameters: {'n': 20}
+Subjects: ['M2', 'I2']
+Accuracy: 0.8571

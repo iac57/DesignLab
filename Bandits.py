@@ -17,8 +17,8 @@ print(reward)
 class Casino:
     def __init__(self, bandits, B, M):
         self.bandits = bandits
-        self.B = B
-        self.M = M
+        self.B = B #total win probability 
+        self.M = M #max you can change any one machine per encounter
     
     def setPayoutsRandom(self):
         """Set the payouts of the bandits randomly while maintaining constraints."""
@@ -40,6 +40,28 @@ class Casino:
         # Update bandits
         for bandit, payout in zip(self.bandits, new_payouts):
             bandit.setPayout(payout)
+
+    def setPayoutsBehavioral(self, machine_id, accuracy):
+        weight=accuracy
+        adjustment= weight*self.M
+        pred_bandit=self.bandits[machine_id-1]
+        payout=pred_bandit.p + adjustment
+        pred_bandit.setPayout(payout)
+        for bandit in self.bandits:
+            if bandit is not pred_bandit:
+                new_payout = bandit.p - adjustment/3
+                bandit.setPayout(new_payout)
+
+    
+    def setPayoutsMoCap(self, machine_id):
+        adjustment= self.M
+        pred_bandit=self.bandits[machine_id-1]
+        payout=pred_bandit.p + adjustment
+        pred_bandit.setPayout(payout)
+        for bandit in self.bandits:
+            if bandit is not pred_bandit:
+                new_payout = bandit.p - adjustment/3
+                bandit.setPayout(new_payout)
         
 class Bandit:
     def __init__(self, p):

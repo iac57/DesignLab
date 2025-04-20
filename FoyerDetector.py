@@ -3,11 +3,19 @@ from shapely.geometry import Point, Polygon
 class FoyerDetector:
     def __init__(self):
         # Define foyer boundaries (example coordinates)
+        #x,z
         self.foyer_polygon = Polygon([
-            (3, 1.5),    # Bottom-left corner
-            (0, 1.5),    # Bottom-right corner
-            (0, 0),    # Top-right corner
-            (3, 0)     # Top-left corner
+
+            (-1.3, -0.8),   # Flipped from (-0.75, -1.3)
+            (-1.20, 0.85),    # Flipped from (0.8, -1.20)
+            (-0.5, 0.85),    # Flipped from (0.75, -0.5)
+            (-0.65, -0.9)
+
+            
+            #(-0.75, -1.3),    # Bottom-left corner
+            #(0.8, -1.20),    # Bottom-right corner
+            #(0.75, -0.5),    # Top-right corner
+            #(-0.85, -0.65)     # Top-left corner
         ])
         self.was_in_foyer = True
     #FIXME can refactor to pass in a point instead of a list for current_position
