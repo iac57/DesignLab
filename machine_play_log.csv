@@ -1,3 +1,4 @@
-Trial Number,Frame,Machine ID
-1,1446,1
-2,3221,3
+Trial Number,Frame,Machine ID,Reward,Prediction
+1,1200,2,True,
+2,3600,4,True,
+3,5920,1,True,

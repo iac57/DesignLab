@@ -1,0 +1,13 @@
+Results for combined subjects using combined strategy
+Parameters: {'n': 10}
+
+              precision    recall  f1-score   support
+
+           1       1.00      0.50      0.67         2
+           2       0.67      1.00      0.80         4
+           3       0.50      0.50      0.50         2
+           4       1.00      0.83      0.91         6
+
+    accuracy                           0.79        14
+   macro avg       0.79      0.71      0.72        14
+weighted avg       0.83      0.79      0.78        14

@@ -1,0 +1,13 @@
+Results for combined subjects using head_only strategy
+Parameters: {'n': 10}
+
+              precision    recall  f1-score   support
+
+           1       0.50      0.50      0.50         2
+           2       0.60      0.75      0.67         4
+           3       1.00      0.50      0.67         2
+           4       1.00      1.00      1.00         6
+
+    accuracy                           0.79        14
+   macro avg       0.78      0.69      0.71        14
+weighted avg       0.81      0.79      0.79        14
