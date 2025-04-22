@@ -34,6 +34,7 @@ from scipy.spatial.transform import Rotation as R
 from model_loader import get_predictor
 from Bandits import Casino, Bandit
 from behavioral_model import BehavioralModel
+from prediction_display import PredictionDisplay
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -98,8 +99,13 @@ def classify_torso_angle(quaternion):
         answer = 34
     return answer
 
+# Initialize prediction display 
+#CHANGE 1
+display = PredictionDisplay()
+
 def receive_rigid_body_frame(new_id, position, rotation):
-    global behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state
+    #CHANGE 2
+    global behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state, display
     
     # Store data for this rigid body in the current frame
     current_frame_data[new_id] = {
@@ -214,6 +220,27 @@ def receive_rigid_body_frame(new_id, position, rotation):
         
         # Clear the current frame data for the next frame
         current_frame_data = {}
+
+    # Update display when player leaves foyer
+    if current_foyer_state != last_foyer_state and not current_foyer_state:
+        data_df = pd.read_csv(trial_file)
+        result = predictor.process_frame(data_df)
+        casino.setPayoutsMoCap(result['prediction'])
+        display.update(result['prediction'], behavioral_prediction, None, [bandit.p for bandit in casino.bandits])
+
+    # Update display when machine is played
+    if machine_id > 0 and last_machine_id == 0:
+        current_time = time.time()
+        if current_time - last_play_time >= 5:
+            # ... existing code ...
+            display.update(result['prediction'], behavioral_prediction, machine_id, [bandit.p for bandit in casino.bandits])
+            # ... rest of existing code ...
+
+    # Handle display events
+    if not display.handle_events():
+        return False  # Signal to stop if display window is closed
+
+    return True  # Continue running
 
 def add_lists(totals, totals_tmp):
     totals[0]+=totals_tmp[0]
