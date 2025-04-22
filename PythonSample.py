@@ -34,6 +34,7 @@ from scipy.spatial.transform import Rotation as R
 from model_loader import get_predictor
 from Bandits import Casino, Bandit
 from behavioral_model import BehavioralModel
+from display_prediction import PredictionDisplay
 # This is a callback function that gets connected to the NatNet client
 # and called once per mocap frame.
 def receive_new_frame(data_dict):
@@ -69,6 +70,7 @@ FRAME_INTERVAL = MOCAP_FRAMERATE // SAMPLING_RATE  # Automatically calculate fra
 
 M = .2
 B = 2
+prediction_display = PredictionDisplay(B)  # Create an instance of the display class
 bandit1 = Bandit(B/4)
 bandit2 = Bandit(B/4)
 bandit3 = Bandit(B/4)
@@ -78,7 +80,7 @@ def default_q_values():
     return np.zeros(4)
 
 behavioral_model = BehavioralModel()  # Create an instance of the class
-behavioral_prediction = 1 #initialize
+behavioral_prediction = None #initialize
 last_win = 0
 
 # To change sampling rate, just modify SAMPLING_RATE
@@ -99,7 +101,7 @@ def classify_torso_angle(quaternion):
     return answer
 
 def receive_rigid_body_frame(new_id, position, rotation):
-    global behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state
+    global mocap_prediction, behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state
     
     # Store data for this rigid body in the current frame
     current_frame_data[new_id] = {
@@ -148,6 +150,8 @@ def receive_rigid_body_frame(new_id, position, rotation):
                         data_df = pd.read_csv(trial_file) #since rigid_body_data is being continuously updated, i need to continuously read it into a dataframe
                         result = predictor.process_frame(data_df) #this should work as it will just take the last n samples as a feature vector
                         casino.setPayoutsMoCap(result['prediction'])
+                        mocap_prediction = result['prediction']
+                        prediction_display.display_prediction(mocap_prediction, behavioral_prediction, last_machine_id, [bandit.p for bandit in casino.bandits])  # Update the display with the prediction
                         prediction_file.write(f"Prediction for Trial {trial_number}: {result}\n")
                         prediction_file.write(f"Machine Payouts for Machines 1-4: {[bandit.p for bandit in casino.bandits]}\n")
                         log_file.write(f"Frame {TOTAL_FRAMES}: Body has left the foyer\n")
@@ -194,6 +198,7 @@ def receive_rigid_body_frame(new_id, position, rotation):
                             else:
                                 log_file.write(f"Frame {TOTAL_FRAMES}: Loser\n")
                                 last_win = 0
+                            prediction_display.check(mocap_pred=mocap_prediction, behavioral_pred=behavioral_prediction, actual_machine=machine_id, won=won)  # Update the display red/green based on correct/not
                             behavioral_model.update(machine_id, behavioral_prediction, trial_number) #update the behavioral model with the machine played and the prediction
                             behavioral_prediction = behavioral_model.predict(trial_number, machine_id, last_win) #update the prediction
                             with open("prediction_log.txt", "a") as prediction_file:

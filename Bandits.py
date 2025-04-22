@@ -19,49 +19,65 @@ class Casino:
         self.bandits = bandits
         self.B = B #total win probability 
         self.M = M #max you can change any one machine per encounter
-    
-    def setPayoutsRandom(self):
-        """Set the payouts of the bandits randomly while maintaining constraints."""
-        current_payouts = [bandit.p for bandit in self.bandits]
-        new_payouts = [np.random.random() for _ in range(4)]
-        
-        # Generate random changes within M constraint
-        #for p in current_payouts:
-        #    change = np.random.uniform(-self.M, self.M)
-        #    new_p = np.clip(p + change, 0, 1)
-        #    new_payouts.append(new_p)
-        
-        # Scale to maintain sum = B
-        total = sum(new_payouts)
-        #if total > 0:
-        #scales it so that the sum is B
-        new_payouts = [p * (self.B / total) for p in new_payouts]
-        
-        # Update bandits
-        for bandit, payout in zip(self.bandits, new_payouts):
-            bandit.setPayout(payout)
 
     def setPayoutsBehavioral(self, machine_id, accuracy):
-        weight=accuracy
-        adjustment= weight*self.M
-        pred_bandit=self.bandits[machine_id-1]
-        payout=pred_bandit.p + adjustment
-        pred_bandit.setPayout(payout)
-        for bandit in self.bandits:
-            if bandit is not pred_bandit:
-                new_payout = bandit.p - adjustment/3
-                bandit.setPayout(new_payout)
+        weight = accuracy
+        max_adjustment = weight * self.M
+        pred_bandit = self.bandits[machine_id-1]
+        
+        # Calculate the maximum possible decrease for predicted machine
+        max_decrease = min(max_adjustment, pred_bandit.p)
+        actual_decrease = max_decrease
+        
+        # Initially decrease the predicted machine's payout
+        new_payout = pred_bandit.p - actual_decrease
+        
+        # Get other bandits and their current payouts
+        other_bandits = [b for b in self.bandits if b is not pred_bandit]
+        other_payouts = [b.p for b in other_bandits]
+        
+        # Calculate how much we can increase other machines without exceeding 1.0
+        available_space = [1.0 - p for p in other_payouts]
+        total_available = sum(available_space)
+        
+        # Calculate proportional increases for other bandits
+        increases = [actual_decrease * (space / total_available) for space in available_space]
+       
+        # Apply the new payouts
+        pred_bandit.setPayout(new_payout)
+        for bandit, increase in zip(other_bandits, increases):
+            bandit.setPayout(bandit.p + increase)
 
-    
     def setPayoutsMoCap(self, machine_id):
-        adjustment= self.M
-        pred_bandit=self.bandits[machine_id-1]
-        payout=pred_bandit.p + adjustment
-        pred_bandit.setPayout(payout)
-        for bandit in self.bandits:
-            if bandit is not pred_bandit:
-                new_payout = bandit.p - adjustment/3
-                bandit.setPayout(new_payout)
+        # Same logic as above but with fixed adjustment
+        max_adjustment = self.M
+        pred_bandit = self.bandits[machine_id-1]
+        
+        # Calculate the maximum possible decrease for predicted machine
+        max_decrease = min(max_adjustment, pred_bandit.p)
+        actual_decrease = max_decrease
+        
+        # Initially decrease the predicted machine's payout
+        new_payout = pred_bandit.p - actual_decrease
+        
+        # Get other bandits and their current payouts
+        other_bandits = [b for b in self.bandits if b is not pred_bandit]
+        other_payouts = [b.p for b in other_bandits]
+        
+        # Calculate how much we can increase other machines without exceeding 1.0
+        available_space = [1.0 - p for p in other_payouts]
+        total_available = sum(available_space)
+        
+        # If we can't distribute all the decrease, reduce the actual decrease
+        # Calculate proportional increases for other bandits
+       
+        increases = [actual_decrease * (space / total_available) for space in available_space]
+        
+        # Apply the new payouts
+        pred_bandit.setPayout(new_payout)
+        for bandit, increase in zip(other_bandits, increases):
+            bandit.setPayout(bandit.p + increase)
+        
         
 class Bandit:
     def __init__(self, p):
