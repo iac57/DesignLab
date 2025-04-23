@@ -90,16 +90,6 @@ last_win = 0
 
 #Another callback method. This function is called once per rigid body per frame
 
-
-def classify_torso_angle(quaternion):
-    euler_angles = R.from_quat(quaternion).as_euler('zyx', degrees=True)
-    torso_angle = euler_angles[1]
-    if torso_angle < 0:
-        answer = 12
-    else:
-        answer = 34
-    return answer
-
 def receive_rigid_body_frame(new_id, position, rotation):
     global mocap_prediction, behavioral_model, behavioral_prediction, last_win, last_machine_id, last_play_time, FRAME_COUNTER, trial_number, was_outof_foyer, torso_rigid_body_id, head_rigid_body_id, TOTAL_FRAMES, FRAME_INTERVAL, current_frame_data, last_foyer_state
     

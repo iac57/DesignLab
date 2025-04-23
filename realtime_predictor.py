@@ -4,7 +4,7 @@ import pandas as pd
 from motion_rnn import weighted_average, last_n_samples
 
 class MotionPredictor:
-    def __init__(self, model_path='best_motion_classifier_combined.pkl'):
+    def __init__(self, model_path='torso_only_M3_T2_I3_classifier.pkl'):
         # Load the saved model and configuration
         model_data = joblib.load(model_path)
         self.model = model_data['model']
