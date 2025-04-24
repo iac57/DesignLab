@@ -1,0 +1,5 @@
+Trial Number,Frame,Machine ID,Reward,Prediction
+1,880,2,True,
+2,2180,1,False,
+1,780,1,False,
+1,780,2,False,

@@ -10,7 +10,7 @@ class BehavioralModel:
     def default_q_values():
         return np.zeros(4)
 
-    def __init__(self, q_table_path="q_learning_model.pkl", n=5):
+    def __init__(self, q_table_path="q_learning_model2.pkl", n=5):
         with open(q_table_path, "rb") as f:
             self.Q = pickle.load(f)
 
